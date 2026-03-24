@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>민석지희 금융자산 대시보드 v150</title>
+<title>민석지희 금융자산 대시보드 v152</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
@@ -148,10 +148,10 @@ tr:last-child td { border-bottom:none; }
 /* 이중 범위 슬라이더 */
 .dual-range-wrap { position:relative;height:28px;margin:8px 0; }
 .dual-range-wrap input[type=range] { position:absolute;width:100%;pointer-events:none;-webkit-appearance:none;appearance:none;height:4px;background:transparent;outline:none; }
-.dual-range-wrap input[type=range]::-webkit-slider-thumb { pointer-events:all;-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);border:2px solid #0f172a;cursor:pointer; }
-.dual-range-wrap input[type=range]::-moz-range-thumb { pointer-events:all;width:18px;height:18px;border-radius:50%;background:var(--accent);border:2px solid #0f172a;cursor:pointer; }
-.dual-range-track { position:absolute;top:50%;transform:translateY(-50%);left:0;right:0;height:4px;background:#334155;border-radius:99px;pointer-events:none; }
-.dual-range-fill { position:absolute;top:50%;transform:translateY(-50%);height:4px;background:var(--accent);border-radius:99px;pointer-events:none; }
+.dual-range-wrap input[type=range]::-webkit-slider-thumb { pointer-events:all;-webkit-appearance:none;appearance:none;width:28px;height:28px;border-radius:50%;background:var(--accent);border:3px solid #0f172a;cursor:pointer; }
+.dual-range-wrap input[type=range]::-moz-range-thumb { pointer-events:all;width:28px;height:28px;border-radius:50%;background:var(--accent);border:3px solid #0f172a;cursor:pointer; }
+.dual-range-track { position:absolute;top:50%;transform:translateY(-50%);left:0;right:0;height:6px;background:#334155;border-radius:99px;pointer-events:none; }
+.dual-range-fill { position:absolute;top:50%;transform:translateY(-50%);height:6px;background:var(--accent);border-radius:99px;pointer-events:none; }
 
 /* 범위 슬라이더 */
 .range-label { display:flex;justify-content:space-between;font-size:0.75rem;color:var(--sub);margin-bottom:6px; }
@@ -162,7 +162,7 @@ input[type=range] { width:100%;accent-color:var(--accent);cursor:pointer;height:
 
 <!-- TOPBAR -->
 <header id="topbar">
-  <div id="topbar-title">💰 민석지희 자산 <span id="version-tag">v150</span></div>
+  <div id="topbar-title">💰 민석지희 자산 <span id="version-tag">v152</span></div>
   <div id="topbar-right">
     <span class="t-badge" id="st-badge">⏳ 로딩 중...</span>
     <button id="privacy-btn" onclick="togglePrivacy()">🔒 비공개</button>
@@ -276,13 +276,13 @@ input[type=range] { width:100%;accent-color:var(--accent);cursor:pointer;height:
         <div class="slabel">전체 요약</div>
         <div class="g4" style="margin-bottom:12px;">
           <div class="card hi"><div class="ct">현재 총 자산</div><div class="cv" id="sum-total">—</div><div class="cs">계좌 합산 + 현금성 자산</div></div>
-          <div class="card"><div class="ct">투자 원금</div><div class="cv" id="sum-principal">—</div><div class="cs">예수금 입금 기준</div></div>
           <div class="card"><div class="ct">총 수익</div><div class="cv" id="sum-profit">—</div><div class="cs">현재 총 자산 - 투자 원금</div></div>
-          <div class="card"><div class="ct">수익률</div><div class="cv" id="sum-rate">—</div><div class="cs">총 수익 / 투자 원금</div></div>
+          <div class="card"><div class="ct">펀드 수익률</div><div class="cv" id="sum-fund-rate">—</div><div class="cs">전체 기간 누적 TWR</div></div>
+          <div class="card"><div class="ct">누적 수익률</div><div class="cv" id="sum-rate">—</div><div class="cs">총 수익 / 투자 원금</div></div>
         </div>
         <div class="g4">
-          <div class="card"><div class="ct">보유 현금</div><div class="cv" id="sum-cash">—</div><div class="cs">계좌 Cash 합 + 현금성 자산</div></div>
-          <div class="card"><div class="ct">현금 비중</div><div class="cv" id="sum-cash-pct">—</div><div class="cs">보유 현금 / 현재 총 자산</div></div>
+          <div class="card"><div class="ct">투자 원금</div><div class="cv" id="sum-principal">—</div><div class="cs">예수금 입금 기준</div></div>
+          <div class="card"><div class="ct">보유 현금</div><div class="cv" id="sum-cash">—</div><div class="cs" id="sum-cash-pct-sub">—</div></div>
           <div class="card"><div class="ct">매도환율</div><div class="cv" id="sum-sell-fx">—</div><div class="cs">Summary C11 기준</div></div>
           <div class="card"><div class="ct">매수환율</div><div class="cv" id="sum-buy-fx">—</div><div class="cs">Summary C12 기준</div></div>
         </div>
@@ -610,7 +610,10 @@ async function loadSummary(){
   setEl('sum-total',krw(totalAsset)); setEl('sum-principal',krw(depPrincipalN));
   setEl('sum-profit',krw(profit),profit>=0?'pos':'neg');
   setEl('sum-rate',(rate>=0?'+':'')+rate.toFixed(2)+'%',rate>=0?'pos':'neg');
-  setEl('sum-cash',krw(totalCash)); setEl('sum-cash-pct',cashPct.toFixed(1)+'%');
+  // 보유현금: 금액 + 비율 보조텍스트
+  setEl('sum-cash',krw(totalCash));
+  var cashSubEl=document.getElementById('sum-cash-pct-sub');
+  if(cashSubEl) cashSubEl.textContent='현금 비중 '+cashPct.toFixed(1)+'%';
   setEl('sum-sell-fx',sellFx>0?krw(sellFx):'—'); setEl('sum-buy-fx',buyFx>0?krw(buyFx):'—');
   var sorted=[].concat(acctList).sort(function(a,b){return b.val-a.val;});
   var pL=sorted.map(function(a){return a.name;}), pD=sorted.map(function(a){return a.val;});
@@ -628,6 +631,22 @@ async function loadSummary(){
   var gmap={}; acctList.forEach(function(a){var g=GM[a.name]||'기타';gmap[g]=(gmap[g]||0)+a.val;});
   renderAllocCharts({'alloc-asset':aggregateBy(allItems,'자산군'),'alloc-stock':aggregateBy(allItems.filter(function(i){return i.자산군==='주식';}),'세부'),'alloc-bond':aggregateBy(allItems.filter(function(i){return i.자산군==='채권';}),'세부'),'alloc-detail':aggregateByCombo(allItems),'alloc-sector':aggregateBy(allItems.filter(function(i){return i.분류&&i.분류!=='—'&&i.분류!=='미분류';}),'분류'),'alloc-group':Object.entries(gmap).sort(function(a,b){return b[1]-a[1];})});
   if(notice)notice.textContent='※ '+acctList.length+'개 계좌 기준 · 달러 계좌 매도환율 '+krw(sellFx)+' 적용';
+
+  // 펀드수익률: history 시트 전체 기간 TWR
+  try {
+    var hRows=await fetchSheet('history','A1:I200');
+    var twrrLast=0;
+    for(var i=hRows.length-1;i>=0;i--){
+      var cell=String(hRows[i][0]||'');
+      if(cell.match(/\d{4}/)&&hRows[i][7]!==undefined){ twrrLast=toNum(hRows[i][7]||'0'); break; }
+    }
+    var fundRateEl=document.getElementById('sum-fund-rate');
+    if(fundRateEl){
+      fundRateEl.dataset.raw=(twrrLast>=0?'+':'')+twrrLast.toFixed(2)+'%';
+      fundRateEl.textContent=(twrrLast>=0?'+':'')+twrrLast.toFixed(2)+'%';
+      fundRateEl.className='cv '+(twrrLast>=0?'pos':'neg');
+    }
+  } catch(e) { console.error('펀드수익률 로드 실패',e); }
 }
 
 async function renderAcct(sheet){
@@ -686,10 +705,11 @@ async function loadAllPerf(){
     content.innerHTML='<section class="sec"><div class="slabel">전체 계좌 성과</div>'
       +'<div class="card" style="margin-bottom:14px;">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><span style="font-size:0.78rem;font-weight:600;">표시 기간</span><span id="perf-date-range" style="font-size:0.75rem;color:var(--accent);font-weight:600;"></span></div>'
-        +'<div class="dual-range-wrap" id="dual-wrap"><div class="dual-range-track"></div><div class="dual-range-fill" id="dual-fill"></div>'
-          +'<input type="range" id="perf-start-slider" min="0" max="'+(total-2)+'" value="'+initStart+'" oninput="onPerfRange()">'
-          +'<input type="range" id="perf-end-slider"   min="1" max="'+(total-1)+'" value="'+initEnd+'"   oninput="onPerfRange()">'
-        +'</div>'
+        +'<div class="dual-range-wrap" id="dual-wrap" style="height:40px;margin:12px 0;">'
+        +'<div class="dual-range-track"></div><div class="dual-range-fill" id="dual-fill"></div>'
+        +'<input type="range" id="perf-start-slider" min="0" max="'+(total-2)+'" value="'+initStart+'" oninput="onPerfRange()" style="height:40px;">'
+        +'<input type="range" id="perf-end-slider"   min="1" max="'+(total-1)+'" value="'+initEnd+'"   oninput="onPerfRange()" style="height:40px;">'
+      +'</div>'
         +'<div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--sub);margin-top:4px;"><span id="perf-start-val"></span><span id="perf-end-val"></span></div>'
       +'</div>'
       +'<div id="perf-kpi"  class="g3" style="margin-bottom:14px;"></div>'
@@ -731,7 +751,7 @@ function updatePerfKPI(s,e){
   var negEx=excess.filter(function(r){return r<0;}), downDev=negEx.length>0?Math.sqrt(negEx.reduce(function(a,b){return a+b*b;},0)/excess.length):0;
   var sortino=downDev>0?(meanEx/downDev)*Math.sqrt(12):0;
   var pc=function(v){return v>=0?'pos':'neg';}, fp=function(v){return(v>=0?'+':'')+v.toFixed(2)+'%';};
-  var sharpeDesc='<div class="tip-row"><span class="tip-good">2.0 이상</span><span>매우 우수</span></div><div class="tip-row"><span class="tip-good">1.0 ~ 2.0</span><span>양호</span></div><div class="tip-row"><span class="tip-ok">0.5 ~ 1.0</span><span>보통</span></div><div class="tip-row"><span class="tip-bad">0 ~ 0.5</span><span>미흡</span></div><div class="tip-row"><span class="tip-bad">0 미만</span><span>손실 구간</span></div><div style="margin-top:6px;color:var(--sub);font-size:0.7rem;">무위험 이자율 2.5% 기준<br>위험 대비 초과수익 효율성</div>';
+  var sharpeDesc='<div class="tip-row"><span class="tip-good">2.0 이상</span><span>경이적</span></div><div class="tip-row"><span class="tip-good">1.0 ~ 2.0</span><span>매우 우수</span></div><div class="tip-row"><span class="tip-ok">0.5 ~ 1.0</span><span>보통</span></div><div class="tip-row"><span class="tip-bad">0 ~ 0.5</span><span>미흡</span></div><div class="tip-row"><span class="tip-bad">0 미만</span><span>손실 구간</span></div><div style="margin-top:6px;color:var(--sub);font-size:0.7rem;">무위험 이자율 2.5% 기준<br>위험 대비 초과수익 효율성</div>';
   var sortinoDesc='<div class="tip-row"><span class="tip-good">2.0 이상</span><span>매우 우수</span></div><div class="tip-row"><span class="tip-good">1.0 ~ 2.0</span><span>양호</span></div><div class="tip-row"><span class="tip-ok">0.5 ~ 1.0</span><span>보통</span></div><div class="tip-row"><span class="tip-bad">0 ~ 0.5</span><span>미흡</span></div><div class="tip-row"><span class="tip-bad">0 미만</span><span>손실 구간</span></div><div style="margin-top:6px;color:var(--sub);font-size:0.7rem;">Sharpe와 달리 하방 편차만 반영<br>손실 리스크 대비 수익 효율성</div>';
   var k1=document.getElementById('perf-kpi'), k2=document.getElementById('perf-kpi2');
   if(k1)k1.innerHTML='<div class="card"><div class="ct">펀드 수익률</div><div class="cv '+pc(periodTWR)+'">'+fp(periodTWR)+'</div><div class="cs">선택 기간 시간가중</div></div><div class="card"><div class="ct">연평균 수익률</div><div class="cv '+pc(annualAvg)+'">'+fp(annualAvg)+'</div><div class="cs">실입금 대비 / 연수</div></div><div class="card"><div class="ct">CAGR (연복리)</div><div class="cv '+pc(cagr)+'">'+fp(cagr)+'</div><div class="cs">실입금 대비 복리환산</div></div>';
