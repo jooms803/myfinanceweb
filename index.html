@@ -223,6 +223,7 @@ input[type=range] { width:100%;accent-color:var(--accent);cursor:pointer;height:
         <div class="msub-item" onclick="mobSelectAcct(this,'(지희)연금펀드')">(지희) 연금</div>
         <div class="msub-item" onclick="mobSelectAcct(this,'(지희)IRP')">(지희) IRP</div>
         <div class="msub-item" onclick="mobSelectAcct(this,'(민석)DC')">(민석) DC</div>
+        <div class="msub-item" onclick="mobSelectAcct(this,'(지희)DC')">(지희) DC</div>
       </div>
     </div>
   </div>
@@ -326,6 +327,7 @@ input[type=range] { width:100%;accent-color:var(--accent);cursor:pointer;height:
             <div class="tree-item" onclick="selectAcct(this,'(지희)연금펀드')">(지희) 연금펀드</div>
             <div class="tree-item" onclick="selectAcct(this,'(지희)IRP')">(지희) IRP</div>
             <div class="tree-item" onclick="selectAcct(this,'(민석)DC')">(민석) DC</div>
+            <div class="tree-item" onclick="selectAcct(this,'(지희)DC')">(지희) DC</div>
           </div>
         </div>
       </div>
@@ -397,14 +399,14 @@ const ALL_SHEETS = [
   {name:'Big Tech',usd:true},{name:'extra investing',usd:true},
   {name:'ISA',usd:false},{name:'ISA(2)',usd:false},{name:'(지희)ISA',usd:false},
   {name:'(민석)연금펀드',usd:false},{name:'(민석)IRP',usd:false},
-  {name:'(지희)연금펀드',usd:false},{name:'(지희)IRP',usd:false},{name:'(민석)DC',usd:false},
+  {name:'(지희)연금펀드',usd:false},{name:'(지희)IRP',usd:false},{name:'(민석)DC',usd:false},{name:'(지희)DC',usd:false},
 ];
 const ACCT_MAP = {
   '미국투자':'Big Tech','미국 투자':'Big Tech','Big Tech':'Big Tech',
   'extra investing':'extra investing','Extra Investing':'extra investing',
   'ISA':'ISA','ISA(2)':'ISA(2)','(지희)ISA':'(지희)ISA',
   '(민석)연금펀드':'(민석)연금펀드','(민석)IRP':'(민석)IRP',
-  '(지희)연금펀드':'(지희)연금펀드','(지희)IRP':'(지희)IRP','(민석)DC':'(민석)DC',
+  '(지희)연금펀드':'(지희)연금펀드','(지희)IRP':'(지희)IRP','(민석)DC':'(민석)DC','(지희)DC':'(지희)DC',
 };
 
 const toNum = function(s){ return parseFloat(String(s||'').replace(/[₩$,%\s원]/g,'').replace(/,/g,''))||0; };
@@ -627,7 +629,7 @@ async function loadSummary(){
   }
   var allItems=acctList.reduce(function(arr,a){return arr.concat(a.items);}, []);
   if(depCashN>0)allItems.push({name:'현금성 자산',자산군:'현금',세부:'현금',통화:'KRW',분류:'—',amtKRW:depCashN});
-  var GM={'Big Tech':'미국 직접투자','extra investing':'미국 직접투자','ISA':'가치투자','ISA(2)':'가치투자','(지희)ISA':'가치투자','(민석)연금펀드':'연금 투자','(민석)IRP':'연금 투자','(지희)연금펀드':'연금 투자','(지희)IRP':'연금 투자','(민석)DC':'연금 투자'};
+  var GM={'Big Tech':'미국 직접투자','extra investing':'미국 직접투자','ISA':'가치투자','ISA(2)':'가치투자','(지희)ISA':'가치투자','(민석)연금펀드':'연금 투자','(민석)IRP':'연금 투자','(지희)연금펀드':'연금 투자','(지희)IRP':'연금 투자','(민석)DC':'연금 투자','(지희)DC':'연금 투자'};
   var gmap={}; acctList.forEach(function(a){var g=GM[a.name]||'기타';gmap[g]=(gmap[g]||0)+a.val;});
   renderAllocCharts({'alloc-asset':aggregateBy(allItems,'자산군'),'alloc-stock':aggregateBy(allItems.filter(function(i){return i.자산군==='주식';}),'세부'),'alloc-bond':aggregateBy(allItems.filter(function(i){return i.자산군==='채권';}),'세부'),'alloc-detail':aggregateByCombo(allItems),'alloc-sector':aggregateBy(allItems.filter(function(i){return i.분류&&i.분류!=='—'&&i.분류!=='미분류';}),'분류'),'alloc-group':Object.entries(gmap).sort(function(a,b){return b[1]-a[1];})});
   if(notice)notice.textContent='※ '+acctList.length+'개 계좌 기준 · 달러 계좌 매도환율 '+krw(sellFx)+' 적용';
@@ -760,7 +762,10 @@ function updatePerfKPI(s,e){
 
 function drawPerfChart(s,e){
   var d=window._perfData; if(!d)return;
-  var labels=d.labels.slice(s,e), monthly=d.monthly.slice(s,e), twrr=d.twrr.slice(s,e);
+  var labels=d.labels.slice(s,e), monthly=d.monthly.slice(s,e);
+  var twrrRaw=d.twrr.slice(s,e);
+  var twrrBase=s>0?(d.twrr[s-1]||0):0;
+  var twrr=twrrRaw.map(function(v){return v-twrrBase;});
   if(CH['perf-chart']){CH['perf-chart'].destroy();delete CH['perf-chart'];}
   var el=document.getElementById('perf-chart'); if(!el)return;
   CH['perf-chart']=new Chart(el,{data:{labels:labels,datasets:[{type:'bar',label:'월간 수익률 (%)',data:monthly,backgroundColor:monthly.map(function(v){return v>=0?'rgba(34,197,94,0.55)':'rgba(239,68,68,0.55)';}),borderColor:monthly.map(function(v){return v>=0?'#22c55e':'#ef4444';}),borderWidth:1,borderRadius:3,yAxisID:'y'},{type:'line',label:'시간가중수익률 (%)',data:twrr,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.07)',borderWidth:2,pointRadius:2,pointHoverRadius:5,fill:true,tension:0.3,yAxisID:'y2'}]},options:{responsive:true,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}},tooltip:{callbacks:{label:function(ctx){return' '+ctx.dataset.label+': '+(ctx.raw>=0?'+':'')+ctx.raw.toFixed(2)+'%';}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:18},grid:{color:'#1e293b'}},y:{position:'left',ticks:{color:'#94a3b8',font:{size:10},callback:function(v){return v.toFixed(1)+'%';}},grid:{color:'#1e293b'},title:{display:true,text:'월간 수익률',color:'#64748b',font:{size:10}}},y2:{position:'right',ticks:{color:'#3b82f6',font:{size:10},callback:function(v){return v.toFixed(1)+'%';}},grid:{drawOnChartArea:false},title:{display:true,text:'TWR',color:'#3b82f6',font:{size:10}}}}}});
